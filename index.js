@@ -162,9 +162,10 @@ exports.register = function(commander) {
     }
 
     commander
+        .option('-p, --port <int>', 'server listen port', parseInt, 8080)
         .action(function() {
             var args = Array.prototype.slice.call(arguments);
-            args.pop();
+            var options = args.pop();
             var cmd = args.shift();
             if (root) {
                 if (fis.util.exists(root) && !fis.util.isDir(root)) {
@@ -175,6 +176,8 @@ exports.register = function(commander) {
             } else {
                 fis.log.error('missing document root');
             }
+            
+            process.env.PORT = options.port;
 
             switch (cmd) {
                 case 'start':
