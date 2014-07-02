@@ -75,8 +75,17 @@ exports.register = function(commander) {
         fis.util.write(getPidFile(), child_process.pid);
     }
 
+    function download(url, cb, force) {
+        var pth = require('path');
+        var sentry = fis.util.exists(pth.join(root, 'server.js'));
+        if (sentry && !force) {
+            cb()
+        } else {
+            fis.util.download(url, cb, root);
+        }
+    }
     function startServer() {
-        fis.util.download(getFrameworkUrl(), function() {
+        download(getFrameworkUrl(), function() {
             if (fis.util.exists(root + '/Procfile')) {
                 var content = fis.util.read(root + '/Procfile', true);
                 var reg = /^web\s*:\s*.*?node\s+([\S]+)/im;
@@ -91,7 +100,7 @@ exports.register = function(commander) {
             } else {
                 lanuch('.');
             }
-        }, root);
+        });
     }
 
     function start() {
@@ -178,7 +187,6 @@ exports.register = function(commander) {
             }
             
             process.env.PORT = options.port;
-
             switch (cmd) {
                 case 'start':
                     stop(start);
@@ -197,6 +205,9 @@ exports.register = function(commander) {
                     fis.util.del(root, include, exclude);
                     process.stdout.write((Date.now() - now + 'ms').green.bold);
                     process.stdout.write('\n');
+                    break;
+                case 'update':
+                    download(getFrameworkUrl(), function() {fis.log.notice('update success.');}, true);
                     break;
                 default:
                     commander.help();
@@ -218,4 +229,8 @@ exports.register = function(commander) {
     commander
         .command('clean')
         .description('clean files in document root');
+
+    commander
+        .command('update')
+        .description('update server framework');
 };
