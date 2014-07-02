@@ -1,0 +1,25 @@
+{
+  "name": "yogurt-command-server",
+  "version": "0.1.0",
+  "description": "yogurt server",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fex-team/yogurt-command-server.git"
+  },
+  "keywords": [
+    "fis",
+    "yogurt",
+    "yog"
+  ],
+  "framework": "http://fisstatic.duapp.com/yogurt/server/yog-app/0.1.0/yog-framework.tar",
+  "author": "fansekey",
+  "license": "BSD",
+  "bugs": {
+    "url": "https://github.com/fex-team/yogurt-command-server/issues"
+  },
+  "homepage": "https://github.com/fex-team/yogurt-command-server"
+}

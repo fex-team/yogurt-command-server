@@ -9,9 +9,20 @@ exports.usage = '<command> [options]';
 exports.desc = 'launch nodejs server';
 exports.register = function(commander) {
 
-    function touch(dir){
-        if(fis.util.exists(dir)){
-            if(!fis.util.isDir(dir)){
+    function getFrameworkUrl() {
+        var pth = require('path');
+        var filepath = pth.join(__dirname, 'package.json');
+        if (fis.util.exists(filepath)) {
+            var json = fis.util.readJSON(filepath);
+            if (json['framework']) {
+                return json['framework'];
+            }
+        }
+    }
+
+    function touch(dir) {
+        if (fis.util.exists(dir)) {
+            if (!fis.util.isDir(dir)) {
                 fis.log.error('invalid directory [' + dir + ']');
             }
         } else {
@@ -20,11 +31,11 @@ exports.register = function(commander) {
         return fis.util.realpath(dir);
     }
 
-    var root = touch((function(){
+    var root = touch((function() {
         var key = 'FIS_SERVER_DOCUMENT_ROOT';
-        if(process.env && process.env[key]){
+        if (process.env && process.env[key]) {
             var path = process.env[key];
-            if(fis.util.exists(path) && !fis.util.isDir(path)){
+            if (fis.util.exists(path) && !fis.util.isDir(path)) {
                 fis.log.error('invalid environment variable [' + key + '] of document root [' + path + ']');
             }
             return path;
@@ -36,12 +47,12 @@ exports.register = function(commander) {
     function open(path, callback) {
         fis.log.notice('browse ' + path.yellow.bold + '\n');
         var cmd = fis.util.escapeShellArg(path);
-        if(fis.util.isWin()){
+        if (fis.util.isWin()) {
             cmd = 'start "" ' + cmd;
         } else {
-            if(process.env['XDG_SESSION_COOKIE']){
+            if (process.env['XDG_SESSION_COOKIE']) {
                 cmd = 'xdg-open ' + cmd;
-            } else if(process.env['GNOME_DESKTOP_SESSION_ID']){
+            } else if (process.env['GNOME_DESKTOP_SESSION_ID']) {
                 cmd = 'gnome-open ' + cmd;
             } else {
                 cmd = 'open ' + cmd;
@@ -54,44 +65,50 @@ exports.register = function(commander) {
         return fis.project.getTempPath('server/pid');
     }
 
-    function lanuch(file){
-        var child_process = spawn(process.execPath, [ file ], { cwd : root });
+    function lanuch(file) {
+        var child_process = spawn(process.execPath, [file], {
+            cwd: root
+        });
         child_process.stderr.pipe(process.stderr);
         child_process.stdout.pipe(process.stdout);
         process.stderr.write(' ➜ server is running\n');
         fis.util.write(getPidFile(), child_process.pid);
     }
 
-    function startServer(){
-        if(fis.util.exists(root + '/Procfile')){
-            var content = fis.util.read(root + '/Procfile', true);
-            var reg = /^web\s*:\s*.*?node\s+([\S]+)/im;
-            var match = content.match(reg);
-            if(match && match[1]){
-                lanuch(match[1]);
+    function startServer() {
+        fis.util.download(getFrameworkUrl(), function() {
+            if (fis.util.exists(root + '/Procfile')) {
+                var content = fis.util.read(root + '/Procfile', true);
+                var reg = /^web\s*:\s*.*?node\s+([\S]+)/im;
+                var match = content.match(reg);
+                if (match && match[1]) {
+                    lanuch(match[1]);
+                } else {
+                    lanuch('.');
+                }
+            } else if (fis.util.exists(root + '/server.js')) {
+                lanuch('server.js');
             } else {
                 lanuch('.');
             }
-        } else if(fis.util.exists(root + '/server.js')){
-            lanuch('server.js');
-        } else {
-            lanuch('.');
-        }
+        }, root);
     }
 
-    function start(){
+    function start() {
         var cwd;
-        if(fis.util.exists(root + '/server/package.json')){
+        if (fis.util.exists(root + '/server/package.json')) {
             cwd = root + '/server';
-        } else if(fis.util.exists(root + '/package.json')){
+        } else if (fis.util.exists(root + '/package.json')) {
             cwd = root;
         }
-        if(cwd){
-            var npm = child_process.exec('npm install', { cwd : cwd });
+        if (cwd) {
+            var npm = child_process.exec('npm install', {
+                cwd: cwd
+            });
             npm.stderr.pipe(process.stderr);
             npm.stdout.pipe(process.stdout);
-            npm.on('exit', function(code){
-                if(code === 0){
+            npm.on('exit', function(code) {
+                if (code === 0) {
                     startServer();
                 } else {
                     process.stderr.write('launch server failed\n');
@@ -102,7 +119,7 @@ exports.register = function(commander) {
         }
     }
 
-    function stop(callback){
+    function stop(callback) {
         var tmp = getPidFile();
         if (fis.util.exists(tmp)) {
             var pid = fis.util.fs.readFileSync(tmp, 'utf8').trim();
@@ -114,12 +131,12 @@ exports.register = function(commander) {
                 list = spawn('ps', ['-A']);
             }
 
-            list.stdout.on('data', function (chunk) {
+            list.stdout.on('data', function(chunk) {
                 msg += chunk.toString('utf-8').toLowerCase();
             });
 
             list.on('exit', function() {
-                msg.split(/[\r\n]+/).forEach(function(item){
+                msg.split(/[\r\n]+/).forEach(function(item) {
                     var reg = new RegExp('\\bnode\\b', 'i');
                     if (reg.test(item)) {
                         var iMatch = item.match(/\d+/);
@@ -145,12 +162,12 @@ exports.register = function(commander) {
     }
 
     commander
-        .action(function(){
+        .action(function() {
             var args = Array.prototype.slice.call(arguments);
             args.pop();
             var cmd = args.shift();
-            if(root){
-                if(fis.util.exists(root) && !fis.util.isDir(root)){
+            if (root) {
+                if (fis.util.exists(root) && !fis.util.isDir(root)) {
                     fis.log.error('invalid document root [' + root + ']');
                 } else {
                     fis.util.mkdir(root);
@@ -164,7 +181,7 @@ exports.register = function(commander) {
                     stop(start);
                     break;
                 case 'stop':
-                    stop(function(){});
+                    stop(function() {});
                     break;
                 case 'open':
                     open(root);
@@ -178,7 +195,7 @@ exports.register = function(commander) {
                     process.stdout.write((Date.now() - now + 'ms').green.bold);
                     process.stdout.write('\n');
                     break;
-                default :
+                default:
                     commander.help();
             }
         });
@@ -187,9 +204,9 @@ exports.register = function(commander) {
         .command('start')
         .description('start server');
 
-   commander
-       .command('stop')
-       .description('shutdown server');
+    commander
+        .command('stop')
+        .description('shutdown server');
 
     commander
         .command('open')
